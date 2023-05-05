@@ -1,0 +1,41 @@
+version: '3'
+
+services:
+  notifications-service:
+    container_name: notifications-service
+    ports:
+      - 9000:9000
+    networks:
+      - net
+    depends_on:
+      notifications-db:
+        condition: service_healthy
+    build:
+      context: ./
+      dockerfile: ./Dockerfile
+
+  notifications-db:
+    container_name: notifications-db
+    env_file: .env
+    image: postgres:14
+    shm_size: 2gb
+    security_opt:
+      - seccomp:unconfined
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d ${POSTGRES_DB} -U ${POSTGRES_USER}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    volumes: 
+      - postgres_vol:/var/lib/postgresql/data:cached
+    ports: 
+      - 5432:5432
+    networks:
+      - net
+
+volumes:
+  postgres_vol:
+
+networks:
+  net:
+    driver: bridge
