@@ -6,7 +6,7 @@ final case class InputBox (
     boxId: String,
     value: Long,
     index: Int,
-    spendingProof: String,
+    spendingProof: Option[String],
     outputBlockId: String,
     outputTransactionId: String,
     outputIndex: Int,
@@ -16,7 +16,6 @@ final case class InputBox (
     ergoTree: String,
     address: String,
     assets: Seq[Token],
-    additionalRegisters: Map[String, String]
 )
 
 object InputBox {

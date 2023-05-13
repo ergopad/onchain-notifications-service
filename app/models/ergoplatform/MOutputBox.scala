@@ -12,7 +12,6 @@ final case class MOutputBox (
     ergoTree: String,
     address: String,
     assets: Seq[Token],
-    additionalRegisters: Map[String, String]
 );
 
 object MOutputBox {

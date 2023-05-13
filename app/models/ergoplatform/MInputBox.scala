@@ -4,7 +4,7 @@ import play.api.libs.json.Json
 import play.api.libs.json.JsValue
 
 final case class SpendingProof (
-    proofBytes: String,
+    proofBytes: Option[String],
     extension: Map[String, String]
 )
 

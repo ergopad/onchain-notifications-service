@@ -2,10 +2,11 @@ package tasks
 
 import akka.actor.ActorSystem
 
+import javax.inject.Inject
+
+import play.api.Logging
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.db.slick.HasDatabaseConfigProvider
-
-import javax.inject.Inject
 
 import scala.concurrent.Await
 import scala.concurrent.ExecutionContext.Implicits.global
@@ -20,18 +21,19 @@ import database._
 class StartupTask @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     protected val actorSystem: ActorSystem
-) extends HasDatabaseConfigProvider[JdbcProfile] {
-  actorSystem.scheduler.scheduleOnce(delay = 5.seconds)(
+) extends HasDatabaseConfigProvider[JdbcProfile]
+    with Logging {
+  actorSystem.scheduler.scheduleOnce(delay = 2.seconds)(
     try {
-      println("Running Startup")
+      logger.info("Running Startup")
       val schema = TableQuery[TransactionStates.TransactionStates].schema
       Await.result(
         db.run(DBIO.seq(schema.create)),
         Duration.Inf
       )
-      println("Startup Done")
+      logger.info("Startup Done")
     } catch {
-      case e: Exception => println(e)
+      case e: Exception => logger.error(e.getMessage())
     }
   )
 }

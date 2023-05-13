@@ -6,8 +6,8 @@ final case class Token(
     tokenId: String,
     index: Int,
     amount: Long,
-    name: String,
-    decimals: Int,
+    name: Option[String],
+    decimals: Option[Int],
 ) 
 
 object Token {

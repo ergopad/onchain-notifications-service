@@ -14,7 +14,6 @@ final case class OutputBox (
     ergoTree: String,
     address: String,
     assets: Seq[Token],
-    additionalRegisters: Map[String, String],
     spentTransactionId: Option[String],
     mainChain: Boolean
 )

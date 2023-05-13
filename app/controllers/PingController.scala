@@ -14,7 +14,7 @@ import scala.concurrent.ExecutionContext
 
 @Singleton
 class PingController @Inject() (
-    protected val controllerComponents: ControllerComponents,
+    protected val controllerComponents: ControllerComponents
 )(implicit ec: ExecutionContext)
     extends BaseController
     with Logging {

@@ -18,7 +18,7 @@ import database.JsonPostgresProfile.api._
 import models._
 
 @Singleton
-class UsersDAO @Inject() (
+class TransactionsDAO @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider
 )(implicit
     ec: ExecutionContext
