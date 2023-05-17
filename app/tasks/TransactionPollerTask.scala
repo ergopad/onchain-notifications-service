@@ -46,7 +46,7 @@ class TransactionPollerTask @Inject() (
         }
       })
     } catch {
-      case e: Exception => logger.error(e.getMessage())
+      case e: Exception => logger.error(e.getMessage(), e)
     }
   )
 
