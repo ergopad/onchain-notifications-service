@@ -18,14 +18,16 @@ import slick.basic.DatabasePublisher
 import slick.jdbc.JdbcProfile
 import slick.jdbc.PostgresProfile.api._
 
+import database._
 import models._
 import models.ergoplatform._
-import database._
+import processor._
 import util._
 
 class TransactionPollerTask @Inject() (
     protected val ergoNodeClient: ErgoNodeClient,
     protected val transactionsDAO: TransactionsDAO,
+    protected val eventProcessor: EventProcessorCore,
     protected val dbConfigProvider: DatabaseConfigProvider,
     protected val actorSystem: ActorSystem
 ) extends HasDatabaseConfigProvider[JdbcProfile]
@@ -37,10 +39,10 @@ class TransactionPollerTask @Inject() (
     try {
       val mTransactions = ergoNodeClient.getMempoolTransactions
       val transactionStates = buildTransactionStates(mTransactions)
-      transactionStates.foreach(transactionState => {
-        val updateDone = updateDBIfRequired(transactionState)
+      transactionStates.foreach(transaction => {
+        val updateDone = updateDBIfRequired(transaction._1)
         if (updateDone) {
-          notifyEventsSystem(transactionState.transactionId);
+          notifyEventsSystem(transaction._2);
         }
       })
     } catch {
@@ -50,15 +52,17 @@ class TransactionPollerTask @Inject() (
 
   private def buildTransactionStates(
       mTransactions: Seq[MTransaction]
-  ): Seq[TransactionState] = {
-    mTransactions.map(transaction =>
-      TransactionState(
+  ): Seq[(TransactionState, MTransaction)] = {
+    mTransactions.map(transaction => {
+      val transactionState = TransactionState(
         UUID.randomUUID,
         transaction.id,
         TransactionStateStatus.PENDING,
         0
       )
-    )
+      // tuple of transaction state and mempool transaction
+      (transactionState, transaction)
+    })
   }
 
   private def updateDBIfRequired(
@@ -79,7 +83,7 @@ class TransactionPollerTask @Inject() (
     !alreadyExists
   }
 
-  private def notifyEventsSystem(transactionId: String) = {
-    logger.info(transactionId + ": " + TransactionStateStatus.PENDING.toString)
+  private def notifyEventsSystem(transaction: MTransaction) = {
+    eventProcessor.processPendingTransaction(transaction);
   }
 }

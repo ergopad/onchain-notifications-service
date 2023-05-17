@@ -18,14 +18,16 @@ import slick.basic.DatabasePublisher
 import slick.jdbc.JdbcProfile
 import slick.jdbc.PostgresProfile.api._
 
+import database._
 import models._
 import models.ergoplatform._
-import database._
+import processor._
 import util._
 
 class TransactionUpdaterTask @Inject() (
     protected val ergoNodeClient: ErgoNodeClient,
     protected val transactionsDAO: TransactionsDAO,
+    protected val eventProcessor: EventProcessorCore,
     protected val dbConfigProvider: DatabaseConfigProvider,
     protected val actorSystem: ActorSystem
 ) extends HasDatabaseConfigProvider[JdbcProfile]
@@ -41,6 +43,8 @@ class TransactionUpdaterTask @Inject() (
         Await.result(transactionsDAO.getPendingTransactions, Duration.Inf)
       val confirmedTransactions =
         getConfirmedTransactions(pendingTransactionStates)
+      val confirmedTransactionsMap =
+        getConfirmedTransactionsMap(confirmedTransactions)
       val pendingTransactions =
         getUnconfirmedTransactions(pendingTransactionStates)
       val updateMap =
@@ -61,6 +65,7 @@ class TransactionUpdaterTask @Inject() (
         )
         notifyEventsSystem(
           transactionState.transactionId,
+          confirmedTransactionsMap.get(transactionState.transactionId),
           transactionState.status
         );
       })
@@ -77,6 +82,19 @@ class TransactionUpdaterTask @Inject() (
     )
   }
 
+  private def getConfirmedTransactionsMap(
+      transactions: Seq[Option[Transaction]]
+  ): Map[String, Transaction] = {
+    val transactionsMap =
+      scala.collection.mutable.Map[String, Transaction]()
+    transactions.foreach(transaction => {
+      if (transaction.isDefined) {
+        transactionsMap.put(transaction.get.id, transaction.get)
+      }
+    })
+    transactionsMap.toMap
+  }
+
   private def getUnconfirmedTransactions(
       transactionStates: Seq[TransactionState]
   ): Seq[Option[MTransaction]] = {
@@ -90,7 +108,7 @@ class TransactionUpdaterTask @Inject() (
       pending: Seq[Option[MTransaction]]
   ): Map[String, TransactionStateStatus.Value] = {
     val stateUpdateMap =
-      scala.collection.mutable.Map[String, TransactionStateStatus.Value]();
+      scala.collection.mutable.Map[String, TransactionStateStatus.Value]()
     confirmed.foreach(transaction => {
       if (transaction.isDefined) {
         stateUpdateMap.put(transaction.get.id, TransactionStateStatus.CONFIRMED)
@@ -139,13 +157,19 @@ class TransactionUpdaterTask @Inject() (
 
   private def notifyEventsSystem(
       transactionId: String,
+      transaction: Option[Transaction],
       status: TransactionStateStatus.Value
-  ) = {
-    if (
-      Seq(TransactionStateStatus.FAILED, TransactionStateStatus.CONFIRMED)
-        .contains(status)
-    ) {
-      logger.info(transactionId + ": " + status.toString)
+  ): Unit = {
+    if (status == TransactionStateStatus.CONFIRMED) {
+      if (transaction.isEmpty) {
+        logger.error(
+          s"Confirmed transaction has empty transaction body: $transactionId"
+        )
+        return
+      }
+      eventProcessor.processConfirmedTransaction(transaction.get)
+    } else if (status == TransactionStateStatus.FAILED) {
+      eventProcessor.processFailedTransaction(transactionId)
     }
   }
 }
