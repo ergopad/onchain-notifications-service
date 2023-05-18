@@ -17,8 +17,8 @@ import models.ergoplatform._
 
 @Singleton
 class ErgoNodeClient @Inject() (
-    private val ws: WSClient,
-    private val config: Configuration
+    protected val ws: WSClient,
+    protected val config: Configuration
 ) extends Logging {
   private val ERGONODE_URL = config.get[String]("ergonode.url")
   private val EXPLORER_URL = config.get[String]("explorer.url")
