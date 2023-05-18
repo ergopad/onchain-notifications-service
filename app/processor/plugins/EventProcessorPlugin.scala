@@ -1,5 +1,6 @@
 package processor.plugins
 
+import models._
 import models.ergoplatform._
 
 trait EventProcessorPlugin {
@@ -16,11 +17,11 @@ trait EventProcessorPlugin {
     * notifcations/events - Note: method is only called if
     * isMatchingMempoolTransaction returns true for the same transaction
     */
-  def processMempoolTransaction(transaction: MTransaction): Unit
+  def processMempoolTransaction(transaction: MTransaction): Seq[Event]
 
   /** Process the confirmed transaction and generate the required
     * notifcations/events - Note: method is only called if isMatchingTransaction
     * returns true for the same transaction
     */
-  def processTransaction(transaction: Transaction): Unit
+  def processTransaction(transaction: Transaction): Seq[Event]
 }

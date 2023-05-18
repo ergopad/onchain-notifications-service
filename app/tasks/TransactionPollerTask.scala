@@ -5,6 +5,7 @@ import akka.actor.ActorSystem
 import java.util.UUID
 
 import javax.inject.Inject
+import javax.inject.Singleton
 
 import play.api.Logging
 import play.api.db.slick.DatabaseConfigProvider
@@ -24,6 +25,7 @@ import models.ergoplatform._
 import processor._
 import util._
 
+@Singleton
 class TransactionPollerTask @Inject() (
     protected val ergoNodeClient: ErgoNodeClient,
     protected val transactionsDAO: TransactionsDAO,

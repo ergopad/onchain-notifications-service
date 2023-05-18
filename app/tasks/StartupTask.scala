@@ -3,6 +3,7 @@ package tasks
 import akka.actor.ActorSystem
 
 import javax.inject.Inject
+import javax.inject.Singleton
 
 import play.api.Logging
 import play.api.db.slick.DatabaseConfigProvider
@@ -18,6 +19,7 @@ import slick.jdbc.PostgresProfile.api._
 
 import database._
 
+@Singleton
 class StartupTask @Inject() (
     protected val dbConfigProvider: DatabaseConfigProvider,
     protected val actorSystem: ActorSystem
