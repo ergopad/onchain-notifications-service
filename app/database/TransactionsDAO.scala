@@ -5,16 +5,16 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 
+import play.api.Logging
 import play.api.db.slick.DatabaseConfigProvider
 import play.api.db.slick.HasDatabaseConfigProvider
-import play.api.Logging
 
 import scala.concurrent.ExecutionContext
 import scala.concurrent.Future
 
 import slick.jdbc.JdbcProfile
-import database.JsonPostgresProfile.api._
 
+import database.JsonPostgresProfile.api._
 import models._
 
 @Singleton

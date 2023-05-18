@@ -26,7 +26,8 @@ class StartupTask @Inject() (
   actorSystem.scheduler.scheduleOnce(delay = 2.seconds)(
     try {
       logger.info("Running Startup")
-      val schema = TableQuery[TransactionStates.TransactionStates].schema
+      val schema = TableQuery[TransactionStates.TransactionStates].schema ++
+        TableQuery[Events.Events].schema
       Await.result(
         db.run(DBIO.seq(schema.create)),
         Duration.Inf
