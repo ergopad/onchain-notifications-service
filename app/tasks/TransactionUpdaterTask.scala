@@ -71,6 +71,11 @@ class TransactionUpdaterTask @Inject() (
           transactionState.status
         );
       })
+      // clean up
+      Await.result(
+        transactionsDAO.cleanupTerminalStateTransactions,
+        Duration.Inf
+      )
     } catch {
       case e: Exception => logger.error(e.getMessage(), e)
     }

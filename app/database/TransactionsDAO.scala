@@ -86,6 +86,13 @@ class TransactionsDAO @Inject() (
     val query = TransactionStates.transactionStates.filter(_.id === id).delete
     db.run(query)
   }
+
+  def cleanupTerminalStateTransactions: Future[Any] = {
+    val query = TransactionStates.transactionStates
+      .filter(_.status =!= TransactionStateStatus.PENDING)
+      .delete
+    db.run(query)
+  }
 }
 
 object TransactionStates {
