@@ -13,7 +13,7 @@ import scala.collection.JavaConverters
 import scala.concurrent.duration.Duration
 import scala.concurrent.Await
 
-import models.ergoplatform._
+import model.ergoplatform._
 
 @Singleton
 class ErgoNodeClient @Inject() (

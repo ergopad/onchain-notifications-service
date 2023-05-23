@@ -20,8 +20,8 @@ import slick.jdbc.JdbcProfile
 import slick.jdbc.PostgresProfile.api._
 
 import database._
-import models._
-import models.ergoplatform._
+import model._
+import model.ergoplatform._
 import processor._
 import util._
 

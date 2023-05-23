@@ -6,7 +6,7 @@ import play.api.Logging
 import play.api.mvc._
 import play.api.libs.json.Json
 
-import models._
+import model._
 import database._
 import util._
 

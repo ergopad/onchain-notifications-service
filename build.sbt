@@ -18,6 +18,11 @@ libraryDependencies += guice
 libraryDependencies += "org.scalatestplus.play" %% "scalatestplus-play" % "5.0.0" % Test
 
 libraryDependencies ++= Seq(
+  "com.google.inject.extensions" % "guice-multibindings" % "4.2.2",
+  "org.reflections" % "reflections" % "0.10.2"
+)
+
+libraryDependencies ++= Seq(
   "com.typesafe.play" %% "play-slick" % "5.1.0",
   "org.postgresql" % "postgresql" % "42.2.12"
 )

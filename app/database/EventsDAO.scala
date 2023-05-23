@@ -17,7 +17,7 @@ import scala.concurrent.Future
 import slick.jdbc.JdbcProfile
 
 import database.JsonPostgresProfile.api._
-import models._
+import model._
 
 @Singleton
 class EventsDAO @Inject() (

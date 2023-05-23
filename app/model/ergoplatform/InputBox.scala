@@ -1,4 +1,4 @@
-package models.ergoplatform
+package model.ergoplatform
 
 import play.api.libs.json.Json
 

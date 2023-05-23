@@ -8,8 +8,8 @@ import javax.inject.Singleton
 
 import play.api.libs.json.Json
 
-import models._
-import models.ergoplatform._
+import model._
+import model.ergoplatform._
 
 /** Sample Implementation
   */

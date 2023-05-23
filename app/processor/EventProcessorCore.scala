@@ -7,30 +7,23 @@ import play.api.Logging
 
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
+import scala.collection.JavaConverters._
 
 import database._
-import models._
-import models.ergoplatform._
+import model._
+import model.ergoplatform._
 import processor.plugins._
 
-// TODO: Inject Set[EventProcessorPlugin]
-// Ref: https://stackoverflow.com/questions/49409608/inject-all-implementations-of-a-certain-trait-class-in-play-using-guice
 @Singleton
 class EventProcessorCore @Inject() (
-    // Plugins
-    protected val mintBootstrapPlugin: MintBootstrapPlugin,
-    // Other Dependencies
+    protected val plugins: java.util.Set[EventProcessorPlugin],
     protected val eventsDAO: EventsDAO
 ) extends Logging {
-  private val EVENT_PROCESSOR_PLUGINS: Seq[EventProcessorPlugin] = Seq(
-    mintBootstrapPlugin
-  );
-
   def processConfirmedTransaction(transaction: Transaction) = {
     logger.info(
       transaction.id + ": " + TransactionStateStatus.CONFIRMED.toString
     )
-    EVENT_PROCESSOR_PLUGINS.foreach(plugin => {
+    plugins.asScala.foreach(plugin => {
       val shouldProcess = plugin.isMatchingTransaction(transaction)
       if (shouldProcess) {
         val events = plugin.processTransaction(transaction)
@@ -41,7 +34,7 @@ class EventProcessorCore @Inject() (
 
   def processPendingTransaction(transaction: MTransaction) = {
     logger.info(transaction.id + ": " + TransactionStateStatus.PENDING.toString)
-    EVENT_PROCESSOR_PLUGINS.foreach(plugin => {
+    plugins.asScala.foreach(plugin => {
       val shouldProcess = plugin.isMatchingMempoolTransaction(transaction)
       if (shouldProcess) {
         val events = plugin.processMempoolTransaction(transaction)

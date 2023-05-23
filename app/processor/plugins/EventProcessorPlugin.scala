@@ -1,7 +1,7 @@
 package processor.plugins
 
-import models._
-import models.ergoplatform._
+import model._
+import model.ergoplatform._
 
 trait EventProcessorPlugin {
 
