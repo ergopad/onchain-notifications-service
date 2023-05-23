@@ -41,6 +41,7 @@ class EventsDAO @Inject() (
   def getEventsForAddress(address: String): Future[Seq[Event]] = {
     val query = Events.events
       .filter(_.address === address)
+      .sortBy(_.timestamp.desc)
       .result
     db.run(query)
   }

@@ -13,11 +13,18 @@ import models._
 import models.ergoplatform._
 import processor.plugins._
 
+// TODO: Inject Set[EventProcessorPlugin]
+// Ref: https://stackoverflow.com/questions/49409608/inject-all-implementations-of-a-certain-trait-class-in-play-using-guice
 @Singleton
 class EventProcessorCore @Inject() (
+    // plugins
+    protected val mintBootstrapPlugin: MintBootstrapPlugin,
+    // DAO
     protected val eventsDAO: EventsDAO
 ) extends Logging {
-  private val EVENT_PROCESSOR_PLUGINS: Seq[EventProcessorPlugin] = Seq();
+  private val EVENT_PROCESSOR_PLUGINS: Seq[EventProcessorPlugin] = Seq(
+    mintBootstrapPlugin
+  );
 
   def processConfirmedTransaction(transaction: Transaction) = {
     logger.info(

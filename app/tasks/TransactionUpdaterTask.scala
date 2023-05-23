@@ -34,7 +34,7 @@ class TransactionUpdaterTask @Inject() (
     protected val actorSystem: ActorSystem
 ) extends HasDatabaseConfigProvider[JdbcProfile]
     with Logging {
-  private val MAX_RETRY_COUNT = 3;
+  private val MAX_RETRY_COUNT = 5;
 
   actorSystem.scheduler.scheduleWithFixedDelay(
     initialDelay = 5.seconds,
@@ -133,7 +133,7 @@ class TransactionUpdaterTask @Inject() (
       transactionState: TransactionState
   ): TransactionState = {
     val retryCount = transactionState.retryCount + 1
-    if (retryCount == MAX_RETRY_COUNT) {
+    if (retryCount >= MAX_RETRY_COUNT) {
       TransactionState(
         transactionState.id,
         transactionState.transactionId,
