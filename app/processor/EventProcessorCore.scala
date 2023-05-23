@@ -17,9 +17,9 @@ import processor.plugins._
 // Ref: https://stackoverflow.com/questions/49409608/inject-all-implementations-of-a-certain-trait-class-in-play-using-guice
 @Singleton
 class EventProcessorCore @Inject() (
-    // plugins
+    // Plugins
     protected val mintBootstrapPlugin: MintBootstrapPlugin,
-    // DAO
+    // Other Dependencies
     protected val eventsDAO: EventsDAO
 ) extends Logging {
   private val EVENT_PROCESSOR_PLUGINS: Seq[EventProcessorPlugin] = Seq(
