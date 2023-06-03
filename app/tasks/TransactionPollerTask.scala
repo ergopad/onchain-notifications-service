@@ -35,8 +35,8 @@ class TransactionPollerTask @Inject() (
 ) extends HasDatabaseConfigProvider[JdbcProfile]
     with Logging {
   actorSystem.scheduler.scheduleWithFixedDelay(
-    initialDelay = 5.seconds,
-    delay = 60.seconds
+    initialDelay = 2.seconds,
+    delay = 5.seconds
   )(() =>
     try {
       val mTransactions = ergoNodeClient.getMempoolTransactions

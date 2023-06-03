@@ -69,4 +69,22 @@ class ErgoNodeClient @Inject() (
     }
     result.asOpt
   }
+
+  def getLatestBlock: Option[Block] = {
+    val request = ws
+      .url(EXPLORER_URL + s"/blocks?limit=1&offset=0&sortBy=height&sortDirection=desc")
+      .get()
+    val response = Await.result(request, Duration.Inf)
+    val blocksJson = response.json.\("items").get
+    val result = Json.fromJson[Seq[Block]](blocksJson)
+    if (result.isError) {
+      logger.error(result.asInstanceOf[JsError].errors.toString)
+      return None
+    }
+    val blocks = result.get
+    if (blocks.length == 0) {
+      return None
+    }
+    Option(blocks(0))
+  }
 }

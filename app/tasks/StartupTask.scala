@@ -29,7 +29,8 @@ class StartupTask @Inject() (
     try {
       logger.info("Running Startup")
       val schema = TableQuery[TransactionStates.TransactionStates].schema ++
-        TableQuery[Events.Events].schema
+        TableQuery[Events.Events].schema ++
+        TableQuery[BlockHeights.BlockHeights].schema
       Await.result(
         db.run(DBIO.seq(schema.create)),
         Duration.Inf

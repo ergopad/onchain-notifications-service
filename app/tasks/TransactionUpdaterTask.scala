@@ -28,6 +28,7 @@ import util._
 @Singleton
 class TransactionUpdaterTask @Inject() (
     protected val ergoNodeClient: ErgoNodeClient,
+    private val blockHeightsDAO: BlockHeightsDAO,
     protected val transactionsDAO: TransactionsDAO,
     protected val eventProcessor: EventProcessorCore,
     protected val dbConfigProvider: DatabaseConfigProvider,
@@ -37,49 +38,60 @@ class TransactionUpdaterTask @Inject() (
   private val MAX_RETRY_COUNT = 5;
 
   actorSystem.scheduler.scheduleWithFixedDelay(
-    initialDelay = 5.seconds,
-    delay = 60.seconds
+    initialDelay = 2.seconds,
+    delay = 10.seconds
   )(() =>
     try {
-      val pendingTransactionStates =
-        Await.result(transactionsDAO.getPendingTransactions, Duration.Inf)
-      val confirmedTransactions =
-        getConfirmedTransactions(pendingTransactionStates)
-      val confirmedTransactionsMap =
-        getConfirmedTransactionsMap(confirmedTransactions)
-      val pendingTransactions =
-        getUnconfirmedTransactions(pendingTransactionStates)
-      val updateMap =
-        buildStateUpdateMap(confirmedTransactions, pendingTransactions)
-      val updatedTransactionStates =
-        pendingTransactionStates.map(transactionState => {
-          val update = updateMap.get(transactionState.transactionId)
-          if (update.isDefined) {
-            getTransactionUpdatedStateIfRequired(transactionState, update.get)
-          } else {
-            getTransactionStateForRetry(transactionState)
-          }
-        })
-      updatedTransactionStates.foreach(transactionState => {
-        Await.result(
-          transactionsDAO.updateTransactionState(transactionState),
-          Duration.Inf
-        )
-        notifyEventsSystem(
-          transactionState.transactionId,
-          confirmedTransactionsMap.get(transactionState.transactionId),
-          transactionState.status
-        );
-      })
-      // clean up
-      Await.result(
-        transactionsDAO.cleanupTerminalStateTransactions,
-        Duration.Inf
-      )
+      if (shouldUpdateTransactionStates) {
+        // update transaction states only when chain height has increased
+        // no point in polling if there are no change in height
+        updateTransactionStates();
+      }
+      cleanUpTerminalStateTransactions();
     } catch {
       case e: Exception => logger.error(e.getMessage(), e)
     }
   )
+
+  private def updateTransactionStates() = {
+    val pendingTransactionStates =
+      Await.result(transactionsDAO.getPendingTransactions, Duration.Inf)
+    val confirmedTransactions =
+      getConfirmedTransactions(pendingTransactionStates)
+    val confirmedTransactionsMap =
+      getConfirmedTransactionsMap(confirmedTransactions)
+    val pendingTransactions =
+      getUnconfirmedTransactions(pendingTransactionStates)
+    val updateMap =
+      buildStateUpdateMap(confirmedTransactions, pendingTransactions)
+    val updatedTransactionStates =
+      pendingTransactionStates.map(transactionState => {
+        val update = updateMap.get(transactionState.transactionId)
+        if (update.isDefined) {
+          getTransactionUpdatedStateIfRequired(transactionState, update.get)
+        } else {
+          getTransactionStateForRetry(transactionState)
+        }
+      })
+    updatedTransactionStates.foreach(transactionState => {
+      Await.result(
+        transactionsDAO.updateTransactionState(transactionState),
+        Duration.Inf
+      )
+      notifyEventsSystem(
+        transactionState.transactionId,
+        confirmedTransactionsMap.get(transactionState.transactionId),
+        transactionState.status
+      );
+    })
+  }
+
+  private def cleanUpTerminalStateTransactions() = {
+    Await.result(
+      transactionsDAO.cleanupTerminalStateTransactions,
+      Duration.Inf
+    )
+  }
 
   private def getConfirmedTransactions(
       transactionStates: Seq[TransactionState]
@@ -178,5 +190,39 @@ class TransactionUpdaterTask @Inject() (
     } else if (status == TransactionStateStatus.FAILED) {
       eventProcessor.processFailedTransaction(transactionId)
     }
+  }
+
+  private def shouldUpdateTransactionStates: Boolean = {
+    val currentBlock = ergoNodeClient.getLatestBlock;
+    if (currentBlock.isEmpty) {
+      // in case currentBlock is empty (network error)
+      // return false and simply retry
+      return false
+    }
+    val currentHeight = currentBlock.get.height
+    val lastUpdateBlockHeight =
+      Await.result(blockHeightsDAO.getBlockHeight, Duration.Inf)
+    // update db with latest height
+    createOrUpdateBlockHeight(currentHeight)
+    if (lastUpdateBlockHeight.isEmpty) {
+      // db was empty so always update transaction states
+      return true
+    }
+    val lastUpdateHeight = lastUpdateBlockHeight.get.blockHeight
+    // update states when current height has increased
+    // mempool transactions have been confirmed
+    currentHeight > lastUpdateHeight
+  }
+
+  private def createOrUpdateBlockHeight(height: Int) = {
+    if (canUpdateBlockHeight) {
+      Await.result(blockHeightsDAO.updateBlockHeight(height), Duration.Inf)
+    } else {
+      Await.result(blockHeightsDAO.insertBlockHeight(height), Duration.Inf)
+    }
+  }
+
+  private def canUpdateBlockHeight: Boolean = {
+    Await.result(blockHeightsDAO.getBlockHeight, Duration.Inf).isDefined
   }
 }
