@@ -10,7 +10,7 @@ import processor.plugins.EventProcessorPlugin
 class ApplicationModule extends AbstractModule {
   override def configure(): Unit = {
     import scala.collection.JavaConverters._
-    val r = new Reflections("processor.plugin")
+    val r = new Reflections("processor.plugins")
     val subtypes = r.getSubTypesOf(classOf[EventProcessorPlugin])
 
     val executorBinder =
