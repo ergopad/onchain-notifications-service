@@ -34,4 +34,10 @@ class EventController @Inject() (
         .map(event => Ok(Json.toJson(event)));
     }
   }
+
+  def getPluginEvents(plugin: String): Action[AnyContent] = Action.async {
+    eventsDAO
+      .getEventsForPlugin(plugin)
+      .map(event => Ok(Json.toJson(event)));
+  }
 }

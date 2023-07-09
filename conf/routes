@@ -4,7 +4,8 @@
 # ~~~~
 
 # Ping Controller
-GET     /ping               controllers.PingController.ping()
+GET     /ping                       controllers.PingController.ping()
 
 # Event Controller
-GET     /event/:address     controllers.EventController.getEvents(address: String, pluginName: Option[String] ?= None)
+GET     /event/:address             controllers.EventController.getEvents(address: String, pluginName: Option[String] ?= None)
+GET     /sync_events/:plugin        controllers.EventController.getPluginEvents(plugin: String)
