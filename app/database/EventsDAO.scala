@@ -38,15 +38,22 @@ class EventsDAO @Inject() (
     db.run(query)
   }
 
-  def getEventsForAddress(address: String): Future[Seq[Event]] = {
+  def getEventsForAddress(
+      address: String,
+      limit: Int = 100
+  ): Future[Seq[Event]] = {
     val query = Events.events
       .filter(_.address === address)
       .sortBy(_.timestamp.desc)
+      .take(limit)
       .result
     db.run(query)
   }
 
-  def getEventsForPlugin(plugin: String, limit: Int = 100): Future[Seq[Event]] = {
+  def getEventsForPlugin(
+      plugin: String,
+      limit: Int = 100
+  ): Future[Seq[Event]] = {
     val query = Events.events
       .filter(_.pluginName === plugin)
       .sortBy(_.timestamp.desc)
@@ -57,12 +64,14 @@ class EventsDAO @Inject() (
 
   def getEventsForAddressAndPluginName(
       address: String,
-      pluginName: String
+      pluginName: String,
+      limit: Int = 100
   ): Future[Seq[Event]] = {
     val query = Events.events
       .filter(_.address === address)
       .filter(_.pluginName === pluginName)
       .sortBy(_.timestamp.desc)
+      .take(limit)
       .result
     db.run(query)
   }

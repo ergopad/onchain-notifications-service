@@ -19,6 +19,8 @@ class EventProcessorCore @Inject() (
     protected val plugins: java.util.Set[EventProcessorPlugin],
     protected val eventsDAO: EventsDAO
 ) extends Logging {
+  private val DUPLICATE_EVENT_TIMESTAMP_DELTA_SECONDS = 600;
+
   def processConfirmedTransaction(transaction: Transaction) = {
     logger.info(
       transaction.id + ": " + TransactionStateStatus.CONFIRMED.toString
@@ -38,7 +40,8 @@ class EventProcessorCore @Inject() (
       val shouldProcess = plugin.isMatchingMempoolTransaction(transaction)
       if (shouldProcess) {
         val events = plugin.processMempoolTransaction(transaction)
-        publishEvents(events)
+        val dedupedEvents = events.filter(event => verifyDuplicates(event))
+        publishEvents(dedupedEvents)
       }
     })
   }
@@ -51,5 +54,27 @@ class EventProcessorCore @Inject() (
     events.foreach(event => {
       Await.result(eventsDAO.createEvent(event), Duration.Inf)
     })
+  }
+
+  private def verifyDuplicates(event: Event): Boolean = {
+    val address = event.address
+    val pluginName = event.pluginName
+    val events = Await.result(
+      eventsDAO.getEventsForAddressAndPluginName(address, pluginName),
+      Duration.Inf
+    )
+    val matchingEvents = events.filter(e => {
+      getEventHash(e) == getEventHash(event) && isMatchingTimestamp(e, event)
+    })
+    matchingEvents.headOption.isEmpty
+  }
+
+  private def getEventHash(event: Event): Int = {
+    val text = event.address + event.pluginName + event.body.toString
+    text.hashCode
+  }
+
+  private def isMatchingTimestamp(e1: Event, e2: Event): Boolean = {
+    (e1.timestamp.getEpochSecond - e2.timestamp.getEpochSecond).abs <= DUPLICATE_EVENT_TIMESTAMP_DELTA_SECONDS
   }
 }
