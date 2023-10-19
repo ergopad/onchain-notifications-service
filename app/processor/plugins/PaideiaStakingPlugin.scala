@@ -19,7 +19,7 @@ class PaideiaStakingPlugin @Inject() ()
     extends EventProcessorPlugin
     with Logging {
   private val PAIDEIA_STAKE_STATE_TOKEN_ID =
-    "00371ebfea98f3a9497404892ac43cd7ad45c6258d637af504b4cd6dd43d8afd"
+    "00ad20adc989005bb7c79afa64bad214da89c7e627dcb3d5d43580500f08ac28"
   private val B_PAIDEIA_TOKEN_ID =
     "0040ae650c4ed77bcd20391493abe84c1a9bb58ee88e87f15670c801e2fc5983"
   private val STAKE_TRANSACTION_OUTPUT_LENGTH = 5
