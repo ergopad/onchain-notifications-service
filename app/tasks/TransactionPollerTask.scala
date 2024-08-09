@@ -35,7 +35,7 @@ class TransactionPollerTask @Inject() (
 ) extends HasDatabaseConfigProvider[JdbcProfile]
     with Logging {
   actorSystem.scheduler.scheduleWithFixedDelay(
-    initialDelay = 2.seconds,
+    initialDelay = 10.seconds,
     delay = 5.seconds
   )(() =>
     try {

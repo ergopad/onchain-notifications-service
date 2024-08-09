@@ -38,7 +38,7 @@ class TransactionUpdaterTask @Inject() (
   private val MAX_RETRY_COUNT = 5;
 
   actorSystem.scheduler.scheduleWithFixedDelay(
-    initialDelay = 2.seconds,
+    initialDelay = 10.seconds,
     delay = 10.seconds
   )(() =>
     try {
