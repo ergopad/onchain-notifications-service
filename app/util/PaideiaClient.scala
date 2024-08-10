@@ -7,6 +7,7 @@ import play.api.Configuration
 import play.api.Logging
 import play.api.libs.json.Json
 import play.api.libs.json.JsError
+import play.api.libs.json.JsNull
 import play.api.libs.ws.WSClient
 
 import scala.collection.JavaConverters
@@ -54,11 +55,17 @@ class PaideiaClient @Inject() (
     try {
       Option(
         DaoConfig(
-          changeStake = configJson.\(STAKE_CHANGE_KEY).\("value").get.toString,
-          vote = configJson.\(VOTE_KEY).\("value").get.toString,
-          stake = configJson.\(STAKE_KEY).\("value").get.toString,
-          unstake = configJson.\(UNSTAKE_KEY).\("value").get.toString,
-          dao = configJson.\(DAO_KEY).\("value").get.toString
+          url = daoUrl,
+          changeStake = configJson
+            .\(STAKE_CHANGE_KEY)
+            .\("value")
+            .getOrElse(JsNull)
+            .toString,
+          vote = configJson.\(VOTE_KEY).\("value").getOrElse(JsNull).toString,
+          stake = configJson.\(STAKE_KEY).\("value").getOrElse(JsNull).toString,
+          unstake =
+            configJson.\(UNSTAKE_KEY).\("value").getOrElse(JsNull).toString,
+          dao = configJson.\(DAO_KEY).\("value").getOrElse(JsNull).toString
         )
       )
     } catch {
