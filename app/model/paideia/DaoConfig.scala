@@ -3,6 +3,7 @@ package model.paideia
 import play.api.libs.json.Json
 
 final case class DaoConfig(
+    url: String,
     changeStake: String,
     vote: String,
     stake: String,
