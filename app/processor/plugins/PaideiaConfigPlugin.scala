@@ -10,7 +10,7 @@ import util._
 import play.api.libs.json.Json
 import play.api.Logging
 
-/** Plugin to Detect bPaideia Proposal Events
+/** Plugin to generate Paideia Dynamic config
   */
 @Singleton
 class PaideiaConfigPlugin @Inject() (
@@ -26,7 +26,7 @@ class PaideiaConfigPlugin @Inject() (
     val config = daos
       .map(dao => client.getDaoConfig(dao.daoUrl))
       .filter(maybeConfig => maybeConfig.isDefined)
-      .map(maybeConfig => maybeConfig.get)
+      .map(config => config.get)
     val configJson = Json.stringify(Json.toJson(config))
     logger.info("Updated config: " + configJson)
     DynamicConfig(
