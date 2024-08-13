@@ -34,13 +34,13 @@ class DynamicConfigUpdaterTask @Inject() (
     delay = 1.hour
   )(() => {
     logger.info("Running DynamicConfigUpdaterTask")
-    try {
-      plugins.asScala.foreach(plugin => {
+    plugins.asScala.foreach(plugin => {
+      try {
         val config = plugin.getConfig
         dynamicConfigDAO.put(config.key, config.config)
-      })
-    } catch {
-      case e: Exception => logger.error(e.getMessage(), e)
-    }
+      } catch {
+        case e: Exception => logger.error(e.getMessage(), e)
+      }
+    })
   })
 }

@@ -26,10 +26,14 @@ class EventProcessorCore @Inject() (
       transaction.id + ": " + TransactionStateStatus.CONFIRMED.toString
     )
     plugins.asScala.foreach(plugin => {
-      val shouldProcess = plugin.isMatchingTransaction(transaction)
-      if (shouldProcess) {
-        val events = plugin.processTransaction(transaction)
-        publishEvents(events)
+      try {
+        val shouldProcess = plugin.isMatchingTransaction(transaction)
+        if (shouldProcess) {
+          val events = plugin.processTransaction(transaction)
+          publishEvents(events)
+        }
+      } catch {
+        case e: Exception => logger.error(e.getMessage(), e)
       }
     })
   }
@@ -37,11 +41,15 @@ class EventProcessorCore @Inject() (
   def processPendingTransaction(transaction: MTransaction) = {
     logger.info(transaction.id + ": " + TransactionStateStatus.PENDING.toString)
     plugins.asScala.foreach(plugin => {
-      val shouldProcess = plugin.isMatchingMempoolTransaction(transaction)
-      if (shouldProcess) {
-        val events = plugin.processMempoolTransaction(transaction)
-        val dedupedEvents = events.filter(event => verifyDuplicates(event))
-        publishEvents(dedupedEvents)
+      try {
+        val shouldProcess = plugin.isMatchingMempoolTransaction(transaction)
+        if (shouldProcess) {
+          val events = plugin.processMempoolTransaction(transaction)
+          val dedupedEvents = events.filter(event => verifyDuplicates(event))
+          publishEvents(dedupedEvents)
+        }
+      } catch {
+        case e: Exception => logger.error(e.getMessage(), e)
       }
     })
   }
