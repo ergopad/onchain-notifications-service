@@ -60,12 +60,42 @@ class PaideiaClient @Inject() (
             .\(STAKE_CHANGE_KEY)
             .\("value")
             .getOrElse(JsNull)
-            .toString,
-          vote = configJson.\(VOTE_KEY).\("value").getOrElse(JsNull).toString,
-          stake = configJson.\(STAKE_KEY).\("value").getOrElse(JsNull).toString,
-          unstake =
-            configJson.\(UNSTAKE_KEY).\("value").getOrElse(JsNull).toString,
-          dao = configJson.\(DAO_KEY).\("value").getOrElse(JsNull).toString
+            .toString
+            .stripPrefix("\"")
+            .stripSuffix("\"")
+            .trim,
+          vote = configJson
+            .\(VOTE_KEY)
+            .\("value")
+            .getOrElse(JsNull)
+            .toString
+            .stripPrefix("\"")
+            .stripSuffix("\"")
+            .trim,
+          stake = configJson
+            .\(STAKE_KEY)
+            .\("value")
+            .getOrElse(JsNull)
+            .toString
+            .stripPrefix("\"")
+            .stripSuffix("\"")
+            .trim,
+          unstake = configJson
+            .\(UNSTAKE_KEY)
+            .\("value")
+            .getOrElse(JsNull)
+            .toString
+            .stripPrefix("\"")
+            .stripSuffix("\"")
+            .trim,
+          dao = configJson
+            .\(DAO_KEY)
+            .\("value")
+            .getOrElse(JsNull)
+            .toString
+            .stripPrefix("\"")
+            .stripSuffix("\"")
+            .trim
         )
       )
     } catch {
