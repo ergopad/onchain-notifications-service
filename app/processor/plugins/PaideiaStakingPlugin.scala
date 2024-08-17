@@ -2,52 +2,52 @@ package processor.plugins
 
 import java.util.UUID
 import java.time.Instant
-
 import javax.inject.Inject
 import javax.inject.Singleton
-
-import model.ergoplatform._
-import model._
-
 import play.api.libs.json.Json
 import play.api.Logging
 
-/** Plugin to Detect bPaideia Stake and Unstake Events
+import database.DynamicConfigDAO
+import model.ergoplatform._
+import model.paideia._
+import model._
+import util.Util._
+
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
+/** Plugin to Detect Paideia Stake and Unstake Events
   */
 @Singleton
-class PaideiaStakingPlugin @Inject() ()
-    extends EventProcessorPlugin
+class PaideiaStakingPlugin @Inject() (
+    protected val dynamicConfigDAO: DynamicConfigDAO
+) extends EventProcessorPlugin
     with Logging {
-  private val PAIDEIA_STAKE_STATE_TOKEN_ID =
-    "00ad20adc989005bb7c79afa64bad214da89c7e627dcb3d5d43580500f08ac28"
-  private val B_PAIDEIA_TOKEN_ID =
-    "0040ae650c4ed77bcd20391493abe84c1a9bb58ee88e87f15670c801e2fc5983"
-  private val STAKE_TRANSACTION_OUTPUT_LENGTH = 5
+  private val MIN_OUTPUT_LENGTH = 3
+  private val CONTRACT_INDEX = 1
   private val USER_OUTPUT_INDEX = 2
 
   def isMatchingMempoolTransaction(transaction: MTransaction): Boolean = {
-    val outputBox = transaction.outputs.headOption
-    if (outputBox.isEmpty) {
+    val outputs = transaction.outputs
+    if (outputs.length < MIN_OUTPUT_LENGTH) {
       return false
     }
-    val token = outputBox.get.assets
-      .find(token => token.tokenId == PAIDEIA_STAKE_STATE_TOKEN_ID)
-    return token.isDefined
+    val address = outputs(CONTRACT_INDEX).address
+    findDaoConfig(address).isDefined
   }
 
   def isMatchingTransaction(transaction: Transaction): Boolean = {
-    val outputBox = transaction.outputs.headOption
-    if (outputBox.isEmpty) {
+    val outputs = transaction.outputs
+    if (outputs.length < MIN_OUTPUT_LENGTH) {
       return false
     }
-    val token = outputBox.get.assets
-      .find(token => token.tokenId == PAIDEIA_STAKE_STATE_TOKEN_ID)
-    return token.isDefined
+    val address = outputs(CONTRACT_INDEX).address
+    findDaoConfig(address).isDefined
   }
 
   def processMempoolTransaction(transaction: MTransaction): Seq[Event] = {
     logger.info("Processing Paideia Staking MTransaction: " + transaction.id)
-    if (transaction.outputs.length != STAKE_TRANSACTION_OUTPUT_LENGTH) {
+    if (transaction.outputs.length < MIN_OUTPUT_LENGTH) {
       return Seq()
     }
     getStakeEvents(transaction)
@@ -55,7 +55,7 @@ class PaideiaStakingPlugin @Inject() ()
 
   def processTransaction(transaction: Transaction): Seq[Event] = {
     logger.info("Processing Paideia Staking Transaction: " + transaction.id)
-    if (transaction.outputs.length != STAKE_TRANSACTION_OUTPUT_LENGTH) {
+    if (transaction.outputs.length < MIN_OUTPUT_LENGTH) {
       return Seq()
     }
     getStakeEvents(transaction)
@@ -64,13 +64,13 @@ class PaideiaStakingPlugin @Inject() ()
   private def getStakeEvents(transaction: MTransaction): Seq[Event] = {
     val userBox = transaction
       .outputs(USER_OUTPUT_INDEX)
-    val outputTokens = userBox.assets
-      .find(token => token.tokenId == B_PAIDEIA_TOKEN_ID)
-    val isAddStake = outputTokens.isEmpty
-    return Seq(
+    val contractBox = transaction.outputs(CONTRACT_INDEX)
+    val daoConfig = findDaoConfig(contractBox.address).get
+    Seq(
       generateEvent(
         transaction.id,
-        if (isAddStake) "add_stake" else "remove_stake",
+        daoConfig.url,
+        "stake",
         userBox.address,
         "submitted"
       )
@@ -80,13 +80,13 @@ class PaideiaStakingPlugin @Inject() ()
   private def getStakeEvents(transaction: Transaction): Seq[Event] = {
     val userBox = transaction
       .outputs(USER_OUTPUT_INDEX)
-    val outputTokens = userBox.assets
-      .find(token => token.tokenId == B_PAIDEIA_TOKEN_ID)
-    val isAddStake = outputTokens.isEmpty
-    return Seq(
+    val contractBox = transaction.outputs(CONTRACT_INDEX)
+    val daoConfig = findDaoConfig(contractBox.address).get
+    Seq(
       generateEvent(
         transaction.id,
-        if (isAddStake) "add_stake" else "remove_stake",
+        daoConfig.url,
+        "stake",
         userBox.address,
         "confirmed"
       )
@@ -95,6 +95,7 @@ class PaideiaStakingPlugin @Inject() ()
 
   private def generateEvent(
       transactionId: String,
+      dao: String,
       tpe: String,
       address: String,
       status: String
@@ -104,8 +105,32 @@ class PaideiaStakingPlugin @Inject() ()
       this.getClass.getSimpleName,
       transactionId,
       address,
-      Json.toJson(Map("type" -> tpe, "status" -> status)),
+      Json.toJson(Map("dao" -> dao, "type" -> tpe, "status" -> status)),
       Instant.now
     )
+  }
+
+  private def getConfig: Seq[DaoConfig] = {
+    val res =
+      Await.result(dynamicConfigDAO.get("PaideiaConfigPlugin"), Duration.Inf)
+    if (res.isEmpty) {
+      return Seq()
+    }
+    val json = Json.parse(res.get.config)
+    Json.fromJson[Seq[DaoConfig]](json).get
+  }
+
+  private def findDaoConfig(address: String): Option[DaoConfig] = {
+    val config = getConfig
+    val c = config.find(c =>
+      parseHashFromPaideiaContractSignature(c.stake)
+        .equals(pHashAddress(address)) ||
+        parseHashFromPaideiaContractSignature(c.changeStake)
+          .equals(pHashAddress(address)) ||
+        parseHashFromPaideiaContractSignature(c.unstake).equals(
+          pHashAddress(address)
+        )
+    )
+    c
   }
 }
