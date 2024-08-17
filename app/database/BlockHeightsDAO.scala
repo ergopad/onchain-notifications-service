@@ -1,6 +1,5 @@
 package database
 
-import java.time.Instant
 import java.util.UUID
 
 import javax.inject.Inject
@@ -37,7 +36,8 @@ class BlockHeightsDAO @Inject() (
   }
 
   def insertBlockHeight(height: Int): Future[Any] = {
-    val query = BlockHeights.blockHeights += BlockHeight(UUID.randomUUID, height)
+    val query =
+      BlockHeights.blockHeights += BlockHeight(UUID.randomUUID, height)
     db.run(query)
   }
 
