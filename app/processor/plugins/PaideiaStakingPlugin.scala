@@ -47,17 +47,11 @@ class PaideiaStakingPlugin @Inject() (
 
   def processMempoolTransaction(transaction: MTransaction): Seq[Event] = {
     logger.info("Processing Paideia Staking MTransaction: " + transaction.id)
-    if (transaction.outputs.length < MIN_OUTPUT_LENGTH) {
-      return Seq()
-    }
     getStakeEvents(transaction)
   }
 
   def processTransaction(transaction: Transaction): Seq[Event] = {
     logger.info("Processing Paideia Staking Transaction: " + transaction.id)
-    if (transaction.outputs.length < MIN_OUTPUT_LENGTH) {
-      return Seq()
-    }
     getStakeEvents(transaction)
   }
 
@@ -70,7 +64,7 @@ class PaideiaStakingPlugin @Inject() (
       generateEvent(
         transaction.id,
         daoConfig.url,
-        "stake",
+        if (isAddStake(contractBox.address, daoConfig)) "add_stake" else "remove_stake",
         userBox.address,
         "submitted"
       )
@@ -86,7 +80,7 @@ class PaideiaStakingPlugin @Inject() (
       generateEvent(
         transaction.id,
         daoConfig.url,
-        "stake",
+        if (isAddStake(contractBox.address, daoConfig)) "add_stake" else "remove_stake",
         userBox.address,
         "confirmed"
       )
@@ -132,5 +126,9 @@ class PaideiaStakingPlugin @Inject() (
         )
     )
     c
+  }
+
+  private def isAddStake(contractAddress: String, config: DaoConfig): Boolean = {
+    !parseHashFromPaideiaContractSignature(config.unstake).equals(pHashAddress(contractAddress))
   }
 }

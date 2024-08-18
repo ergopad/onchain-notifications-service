@@ -1,55 +1,65 @@
 package processor.plugins
 
+import play.api.libs.json.Json
+import play.api.Logging
+import scala.concurrent.Await
+import scala.concurrent.duration.Duration
+
 import java.util.UUID
 import java.time.Instant
-
 import javax.inject.Inject
 import javax.inject.Singleton
 
+import database.DynamicConfigDAO
 import model.ergoplatform._
+import model.paideia._
 import model._
+import util.Util._
 
-import play.api.libs.json.Json
-import play.api.Logging
-
-/** Plugin to Detect bPaideia Voting Events
+/** Plugin to Detect Paideia Voting Events
   */
 @Singleton
-class PaideiaVotingPlugin @Inject() ()
-    extends EventProcessorPlugin
+class PaideiaVotingPlugin @Inject() (
+    protected val dynamicConfigDAO: DynamicConfigDAO
+) extends EventProcessorPlugin
     with Logging {
-  private val PROPOSAL_VOTING_CONTRACT =
-    "9Uw9EcVR9bTZiBnKeqMaR3kRuEpe18BPe7a3WrT9Ht9ugLJzKweht4zSZTgeoXehqrUpjRgHj2vELNGruCbwniWHhgj3FpJzf8ReMD9czG8rpezXFw6ZD5xv269N4z2AS4uGhEW2JVgCFPPfAn3CfoR9fHVHM7pTewwRHtkQTexXk7uPc7eH7QsV4vVYrrPxRdBGyLPuVZf26qJQGgi5Fe3NpvJPRbue1tXUzSQGUT4YvHVvd8iSZmP7PmSrAG1tuUuVVeDZdpFgnxS8id7PWsfXipphs4hhL6aJ1"
-  private val VOTE_OUTPUT_SIZE = 3
-  private val VOTING_USER_ADDRESS_INDEX = 2
+  private val MIN_OUTPUT_LENGTH = 4
+  private val CONTRACT_INDEX = 1
+  private val USER_OUTPUT_INDEX = 3
 
   def isMatchingMempoolTransaction(transaction: MTransaction): Boolean = {
-    if (transaction.outputs.length != VOTE_OUTPUT_SIZE) {
-      return false;
+    val outputs = transaction.outputs
+    if (outputs.length < MIN_OUTPUT_LENGTH) {
+      return false
     }
-    val outputBox = transaction.outputs.head
-    outputBox.address == PROPOSAL_VOTING_CONTRACT
+    val address = outputs(CONTRACT_INDEX).address
+    findDaoConfig(address).isDefined
   }
 
   def isMatchingTransaction(transaction: Transaction): Boolean = {
-    if (transaction.outputs.length != VOTE_OUTPUT_SIZE) {
-      return false;
+    val outputs = transaction.outputs
+    if (outputs.length < MIN_OUTPUT_LENGTH) {
+      return false
     }
-    val outputBox = transaction.outputs.head
-    outputBox.address == PROPOSAL_VOTING_CONTRACT
+    val address = outputs(CONTRACT_INDEX).address
+    findDaoConfig(address).isDefined
   }
 
   def processMempoolTransaction(transaction: MTransaction): Seq[Event] = {
     logger.info("Processing Paideia Voting MTransaction: " + transaction.id)
     val userAddress =
-      transaction.outputs(VOTING_USER_ADDRESS_INDEX).address
-    return Seq(
+      transaction.outputs(USER_OUTPUT_INDEX).address
+    val contractAddress = transaction.outputs(CONTRACT_INDEX).address
+    val daoConfig = findDaoConfig(contractAddress).get
+    Seq(
       Event(
         UUID.randomUUID,
         this.getClass.getSimpleName,
         transaction.id,
         userAddress,
-        Json.toJson(Map("type" -> "vote", "status" -> "submitted")),
+        Json.toJson(
+          Map("dao" -> daoConfig.url, "type" -> "vote", "status" -> "submitted")
+        ),
         Instant.now
       )
     )
@@ -58,16 +68,39 @@ class PaideiaVotingPlugin @Inject() ()
   def processTransaction(transaction: Transaction): Seq[Event] = {
     logger.info("Processing Paideia Voting Transaction: " + transaction.id)
     val userAddress =
-      transaction.outputs(VOTING_USER_ADDRESS_INDEX).address
+      transaction.outputs(USER_OUTPUT_INDEX).address
+    val contractAddress = transaction.outputs(CONTRACT_INDEX).address
+    val daoConfig = findDaoConfig(contractAddress).get
     return Seq(
       Event(
         UUID.randomUUID,
         this.getClass.getSimpleName,
         transaction.id,
         userAddress,
-        Json.toJson(Map("type" -> "vote", "status" -> "confirmed")),
+        Json.toJson(
+          Map("dao" -> daoConfig.url, "type" -> "vote", "status" -> "confirmed")
+        ),
         Instant.now
       )
     )
+  }
+
+  private def getConfig: Seq[DaoConfig] = {
+    val res =
+      Await.result(dynamicConfigDAO.get("PaideiaConfigPlugin"), Duration.Inf)
+    if (res.isEmpty) {
+      return Seq()
+    }
+    val json = Json.parse(res.get.config)
+    Json.fromJson[Seq[DaoConfig]](json).get
+  }
+
+  private def findDaoConfig(address: String): Option[DaoConfig] = {
+    val config = getConfig
+    val c = config.find(c =>
+      parseHashFromPaideiaContractSignature(c.vote)
+        .equals(pHashAddress(address))
+    )
+    c
   }
 }
