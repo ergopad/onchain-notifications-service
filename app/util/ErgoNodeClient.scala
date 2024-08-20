@@ -30,7 +30,7 @@ class ErgoNodeClient @Inject() (
       .get()
     val response = Await.result(request, Duration.Inf)
     if (response.status != HTTP_200_OK) {
-      logger.warn(
+      logger.error(
         "getMempoolTransactions failed with status: " + response.status + " and body: " + response.body
       )
     }
@@ -51,7 +51,7 @@ class ErgoNodeClient @Inject() (
     if (
       response.status != HTTP_200_OK && response.status != HTTP_404_NOT_FOUND
     ) {
-      logger.warn(
+      logger.error(
         "getUnconfirmedTransaction failed with status: " + response.status + " and body: " + response.body
       )
     }
@@ -74,7 +74,7 @@ class ErgoNodeClient @Inject() (
     if (
       response.status != HTTP_200_OK && response.status != HTTP_404_NOT_FOUND
     ) {
-      logger.warn(
+      logger.error(
         "getTransaction failed with status: " + response.status + " and body: " + response.body
       )
     }
@@ -97,7 +97,7 @@ class ErgoNodeClient @Inject() (
       .get()
     val response = Await.result(request, Duration.Inf)
     if (response.status != HTTP_200_OK) {
-      logger.warn(
+      logger.error(
         "getLatestBlock failed with status: " + response.status + " and body: " + response.body
       )
     }
