@@ -36,7 +36,7 @@ class TransactionPollerTask @Inject() (
     with Logging {
   actorSystem.scheduler.scheduleWithFixedDelay(
     initialDelay = 10.seconds,
-    delay = 5.seconds
+    delay = 10.seconds
   )(() =>
     try {
       val mTransactions = ergoNodeClient.getMempoolTransactions

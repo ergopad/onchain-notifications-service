@@ -9,7 +9,6 @@ import play.api.libs.json.Json
 import play.api.libs.json.JsError
 import play.api.libs.ws.WSClient
 
-import scala.collection.JavaConverters
 import scala.concurrent.duration.Duration
 import scala.concurrent.Await
 
@@ -23,12 +22,18 @@ class ErgoNodeClient @Inject() (
   private val ERGONODE_URL = config.get[String]("ergonode.url")
   private val EXPLORER_URL = config.get[String]("explorer.url")
   private val HTTP_404_NOT_FOUND = 404;
+  private val HTTP_200_OK = 200;
 
   def getMempoolTransactions: Seq[MTransaction] = {
     val request = ws
       .url(EXPLORER_URL + "/transactions/unconfirmed")
       .get()
     val response = Await.result(request, Duration.Inf)
+    if (response.status != HTTP_200_OK) {
+      logger.warn(
+        "getMempoolTransactions failed with status: " + response.status + " and body: " + response.body
+      )
+    }
     val transactionsJson = response.json.\("items").get
     val result = Json.fromJson[Seq[MTransaction]](transactionsJson)
     if (result.isError) {
@@ -43,6 +48,13 @@ class ErgoNodeClient @Inject() (
       .url(EXPLORER_URL + s"/transactions/unconfirmed/$transactionId")
       .get()
     val response = Await.result(request, Duration.Inf)
+    if (
+      response.status != HTTP_200_OK && response.status != HTTP_404_NOT_FOUND
+    ) {
+      logger.warn(
+        "getUnconfirmedTransaction failed with status: " + response.status + " and body: " + response.body
+      )
+    }
     if (response.status == HTTP_404_NOT_FOUND) {
       return Option.empty[MTransaction]
     }
@@ -59,6 +71,13 @@ class ErgoNodeClient @Inject() (
       .url(EXPLORER_URL + s"/api/v1/transactions/$transactionId")
       .get()
     val response = Await.result(request, Duration.Inf)
+    if (
+      response.status != HTTP_200_OK && response.status != HTTP_404_NOT_FOUND
+    ) {
+      logger.warn(
+        "getTransaction failed with status: " + response.status + " and body: " + response.body
+      )
+    }
     if (response.status == HTTP_404_NOT_FOUND) {
       return Option.empty[Transaction]
     }
@@ -72,9 +91,16 @@ class ErgoNodeClient @Inject() (
 
   def getLatestBlock: Option[Block] = {
     val request = ws
-      .url(EXPLORER_URL + s"/blocks?limit=1&offset=0&sortBy=height&sortDirection=desc")
+      .url(
+        EXPLORER_URL + s"/blocks?limit=1&offset=0&sortBy=height&sortDirection=desc"
+      )
       .get()
     val response = Await.result(request, Duration.Inf)
+    if (response.status != HTTP_200_OK) {
+      logger.warn(
+        "getLatestBlock failed with status: " + response.status + " and body: " + response.body
+      )
+    }
     val blocksJson = response.json.\("items").get
     val result = Json.fromJson[Seq[Block]](blocksJson)
     if (result.isError) {
@@ -82,9 +108,9 @@ class ErgoNodeClient @Inject() (
       return None
     }
     val blocks = result.get
-    if (blocks.length == 0) {
+    if (blocks.isEmpty) {
       return None
     }
-    Option(blocks(0))
+    Option(blocks.head)
   }
 }
