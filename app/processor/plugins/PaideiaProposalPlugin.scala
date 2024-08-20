@@ -23,6 +23,7 @@ class PaideiaProposalPlugin @Inject() (
     protected val dynamicConfigDAO: DynamicConfigDAO
 ) extends EventProcessorPlugin
     with Logging {
+  // TODO: fix transaction detection once new contracts are live
   private val MIN_OUTPUT_LENGTH = 3
   private val CONTRACT_INDEX = 1
   private val USER_OUTPUT_INDEX = 2
