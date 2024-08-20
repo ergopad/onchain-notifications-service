@@ -37,7 +37,8 @@ class TransactionPollerTask @Inject() (
   actorSystem.scheduler.scheduleWithFixedDelay(
     initialDelay = 10.seconds,
     delay = 10.seconds
-  )(() =>
+  )(() => {
+    logger.info("Running TransactionPollerTask")
     try {
       val mTransactions = ergoNodeClient.getMempoolTransactions
       val transactionStates = buildTransactionStates(mTransactions)
@@ -50,7 +51,7 @@ class TransactionPollerTask @Inject() (
     } catch {
       case e: Exception => logger.error(e.getMessage(), e)
     }
-  )
+  })
 
   private def buildTransactionStates(
       mTransactions: Seq[MTransaction]

@@ -40,7 +40,8 @@ class TransactionUpdaterTask @Inject() (
   actorSystem.scheduler.scheduleWithFixedDelay(
     initialDelay = 10.seconds,
     delay = 20.seconds
-  )(() =>
+  )(() => {
+    logger.info("Running TransactionUpdaterTask")
     try {
       if (shouldUpdateTransactionStates) {
         // update transaction states only when chain height has increased
@@ -51,7 +52,7 @@ class TransactionUpdaterTask @Inject() (
     } catch {
       case e: Exception => logger.error(e.getMessage(), e)
     }
-  )
+  })
 
   private def updateTransactionStates() = {
     val pendingTransactionStates =

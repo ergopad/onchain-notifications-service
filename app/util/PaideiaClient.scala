@@ -36,7 +36,7 @@ class PaideiaClient @Inject() (
       .get()
     val response = Await.result(request, Duration.Inf)
     if (response.status != HTTP_200_OK) {
-      logger.warn(
+      logger.error(
         "getDaos failed with status: " + response.status + " and body: " + response.body
       )
     }
@@ -57,7 +57,7 @@ class PaideiaClient @Inject() (
     if (
       response.status != HTTP_200_OK && response.status != HTTP_404_NOT_FOUND
     ) {
-      logger.warn(
+      logger.error(
         "getDaoConfig failed with status: " + response.status + " and body: " + response.body
       )
     }
