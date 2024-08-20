@@ -39,7 +39,7 @@ class TransactionUpdaterTask @Inject() (
 
   actorSystem.scheduler.scheduleWithFixedDelay(
     initialDelay = 10.seconds,
-    delay = 10.seconds
+    delay = 20.seconds
   )(() =>
     try {
       if (shouldUpdateTransactionStates) {

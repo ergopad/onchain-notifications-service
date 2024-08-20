@@ -27,13 +27,19 @@ class PaideiaClient @Inject() (
   private val STAKE_KEY = "im.paideia.contracts.staking.stake"
   private val UNSTAKE_KEY = "im.paideia.contracts.staking.unstake"
   private val DAO_KEY = "im.paideia.contracts.dao"
-  private val HTTP_404_NOT_FOUND = 404;
+  private val HTTP_404_NOT_FOUND = 404
+  private val HTTP_200_OK = 200
 
   def getDaos: Seq[Dao] = {
     val request = ws
       .url(PAIDEIA_API + "/dao/")
       .get()
     val response = Await.result(request, Duration.Inf)
+    if (response.status != HTTP_200_OK) {
+      logger.warn(
+        "getDaos failed with status: " + response.status + " and body: " + response.body
+      )
+    }
     val daosJson = response.json
     val result = Json.fromJson[Seq[Dao]](daosJson)
     if (result.isError) {
@@ -48,6 +54,13 @@ class PaideiaClient @Inject() (
       .url(PAIDEIA_API + "/dao/" + daoUrl + "/config")
       .get()
     val response = Await.result(request, Duration.Inf)
+    if (
+      response.status != HTTP_200_OK && response.status != HTTP_404_NOT_FOUND
+    ) {
+      logger.warn(
+        "getDaoConfig failed with status: " + response.status + " and body: " + response.body
+      )
+    }
     if (response.status == HTTP_404_NOT_FOUND) {
       return None
     }
