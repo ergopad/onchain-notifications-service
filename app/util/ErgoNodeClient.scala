@@ -26,7 +26,7 @@ class ErgoNodeClient @Inject() (
 
   def getMempoolTransactions: Seq[MTransaction] = {
     val request = ws
-      .url(EXPLORER_URL + "/transactions/unconfirmed")
+      .url(EXPLORER_URL + "/transactions/unconfirmed?limit=500")
       .get()
     val response = Await.result(request, Duration.Inf)
     if (response.status != HTTP_200_OK) {
